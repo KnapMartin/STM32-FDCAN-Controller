@@ -89,6 +89,7 @@ bool FdcanController::send(const CanMsg &msg)
 	if (HAL_FDCAN_AddMessageToTxFifoQ(m_hfdcan, &msg.txHeader, msg.data)
 			!= HAL_OK)
 	{
+		osMutexRelease(*m_mutexTx);
 		return false;
 	}
 	if (osSemaphoreAcquire(*m_semTx, osWaitForever) != osOK)
