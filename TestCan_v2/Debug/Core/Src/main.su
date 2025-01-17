@@ -1,0 +1,15 @@
+../Core/Src/main.cpp:96:16:int _write(int, char*, int)	24	static
+../Core/Src/main.cpp:108:5:int main()	8	static
+../Core/Src/main.cpp:216:6:void SystemClock_Config()	88	static
+../Core/Src/main.cpp:265:13:void MX_FDCAN1_Init()	8	static
+../Core/Src/main.cpp:308:13:void MX_USART2_UART_Init()	8	static
+../Core/Src/main.cpp:358:13:void MX_GPIO_Init()	48	static
+../Core/Src/main.cpp:397:6:void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef*, uint32_t)	16	static
+../Core/Src/main.cpp:406:6:void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef*, uint32_t)	16	static
+../Core/Src/main.cpp:423:6:void startTask0(void*)	176	static
+../Core/Src/main.cpp:460:6:void startTask1(void*)	104	static
+../Core/Src/main.cpp:481:6:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	16	static
+../Core/Src/main.cpp:499:6:void Error_Handler()	4	static,ignoring_inline_asm
+../Core/Src/main.cpp:508:1:void __static_initialization_and_destruction_0(int, int)	16	static
+../Core/Src/main.cpp:508:1:cpp)	8	static
+../Core/Src/main.cpp:508:1:cpp)	8	static
