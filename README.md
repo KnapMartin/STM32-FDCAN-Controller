@@ -20,11 +20,11 @@ const osMessageQueueAttr_t queueCan0_attributes = { .name = "queueCan0" };
 osMessageQueueId_t queueCan1Handle;
 const osMessageQueueAttr_t queueCan1_attributes = { .name = "queueCan1" };
 ```
-2. Create "UartController" object in global scope
+2. Create "FdcanController" object in global scope
 ```
 FdcanController can;
 ```
-4. Assign UART, mutex, semaphore and queue handles to "UartController" object. Call "init" method
+4. Assign FDCAN, mutex, semaphore and queue handles to "FdcanController" object. Call "init" method. Optionally cou can define filters to utilize both RX FIFOs.
 ```
 can.setHandleFdcan(&hfdcan1);
 can.setHandleMutexTx(&mutexCanHandle);
@@ -44,7 +44,7 @@ semCanHandle = osSemaphoreNew(1, 0, &semCan_attributes);
 queueCan0Handle = osMessageQueueNew(16, sizeof(CanMsg), &queueCan0_attributes);
 queueCan1Handle = osMessageQueueNew(16, sizeof(CanMsg), &queueCan1_attributes);
 ```
-6. Define tx and both rx interrupt callbacks in main source file
+6. Define TX and both RX interrupt callbacks in main source file
 ```
 void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t BufferIndexes)
 {
@@ -53,12 +53,19 @@ void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t Bu
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifoITs)
 {
-	 can.updateInterruptRx(hfdcan, RxFifoITs, FdcanController::Buffer::Fifo0);
+	 can.updateInterruptRx(hfdcan, RxFifoITs);
 }
 
 void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifoITs)
 {
-    	can.updateInterruptRx(hfdcan, RxFifoITs, FdcanController::Buffer::Fifo1);
+    	can.updateInterruptRx(hfdcan, RxFifoITs);
 }
 ```
 Now you can use "send" and "receive" methods from tasks.
+
+# NOTES
+
+* If using both RX FIFOs, be sure to properly init FDCAN peripheral (hfdcan.Init.StdFiltersNbr = 2;) and properly set up filters.
+
+# TODO
+* Handle CMSIS OS2 wait timeouts.
