@@ -27,7 +27,7 @@ void FdcanController::setHandleFdcan(FDCAN_HandleTypeDef *hfdcan)
 	m_hfdcan = hfdcan;
 }
 
-void FdcanController::setHandleQueue(osMessageQueueId_t *queueCanHandle, const Buffer bufferType)
+FdcanController::State FdcanController::setHandleQueue(osMessageQueueId_t *queueCanHandle, const Buffer bufferType)
 {
 	if (bufferType == Buffer::Fifo0)
 	{
@@ -39,8 +39,10 @@ void FdcanController::setHandleQueue(osMessageQueueId_t *queueCanHandle, const B
 	}
 	else
 	{
-		; // TODO: implement error
+		return State::ErrorHandleQueue;
 	}
+
+	return State::Ok;
 }
 
 void FdcanController::setHandleMutex(osMutexId_t *mutexCanHandle)
@@ -55,11 +57,11 @@ void FdcanController::setHandleSem(osSemaphoreId_t *semCanHandle)
 
 FdcanController::State FdcanController::init()
 {
-	if (m_hfdcan == nullptr) return State::Error;
+	if (m_hfdcan == nullptr) return State::ErrorInit;
 	if ((m_queueCanHandleFifo0 == nullptr) &&
-		(m_queueCanHandleFifo1 == nullptr)) return State::Error;
-	if (m_mutexCanHandle == nullptr) return State::Error;
-	if (m_semCanHandle == nullptr) return State::Error;
+		(m_queueCanHandleFifo1 == nullptr)) return State::ErrorInit;
+	if (m_mutexCanHandle == nullptr) return State::ErrorInit;
+	if (m_semCanHandle == nullptr) return State::ErrorInit;
 
 	if (HAL_FDCAN_Start(m_hfdcan) != HAL_OK)
 	{
@@ -102,25 +104,25 @@ FdcanController::State FdcanController::send(const FdcanMsg msg)
 
 FdcanController::State FdcanController::receive(FdcanMsg *msg, const Buffer bufferType)
 {
+	osMessageQueueId_t *queueHandle = nullptr;
+
 	if (bufferType == Buffer::Fifo0)
 	{
-		if (osMessageQueueGet(*m_queueCanHandleFifo0, msg, nullptr, osWaitForever) != osOK)
-		{
-			return State::ErrorReceive;
-		}
+		queueHandle = m_queueCanHandleFifo0;
 	}
 	else if (bufferType == Buffer::Fifo1)
 	{
-		if (osMessageQueueGet(*m_queueCanHandleFifo1, msg, nullptr, osWaitForever) != osOK)
-		{
-			return State::ErrorReceive;
-		}
+		queueHandle = m_queueCanHandleFifo1;
 	}
 	else
 	{
 		return State::ErrorReceive;
 	}
 
+	if (osMessageQueueGet(*queueHandle, msg, nullptr, osWaitForever) != osOK)
+	{
+		return State::ErrorReceive;
+	}
 
 	return State::Ok;
 }
@@ -142,26 +144,17 @@ FdcanController::State FdcanController::updateInterruptRx(FDCAN_HandleTypeDef *h
 {
 	if (hfdcan->Instance == m_hfdcan->Instance)
 	{
-		if (isrType & FDCAN_IT_RX_FIFO0_NEW_MESSAGE)
+		if ((isrType & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) ||
+			(isrType & FDCAN_IT_RX_FIFO1_NEW_MESSAGE))
 		{
 			FdcanMsg msg;
-			if (HAL_FDCAN_GetRxMessage(m_hfdcan, FDCAN_RX_FIFO0, &msg.rxHeader, msg.data) != HAL_OK)
+			uint32_t fifo = (isrType & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) ? FDCAN_RX_FIFO0 : FDCAN_RX_FIFO1;
+			osMessageQueueId_t *queueHandle = (fifo == FDCAN_RX_FIFO0) ? m_queueCanHandleFifo0 : m_queueCanHandleFifo1;
+			if (HAL_FDCAN_GetRxMessage(m_hfdcan, fifo, &msg.rxHeader, msg.data) != HAL_OK)
 			{
 				return State::ErrorIsrRx;
 			}
-			if (osMessageQueuePut(*m_queueCanHandleFifo0, &msg, 0, 0) != osOK)
-			{
-				return State::ErrorIsrRx;
-			}
-		}
-		else if (isrType & FDCAN_IT_RX_FIFO1_NEW_MESSAGE)
-		{
-			FdcanMsg msg;
-			if (HAL_FDCAN_GetRxMessage(m_hfdcan, FDCAN_RX_FIFO1, &msg.rxHeader, msg.data) != HAL_OK)
-			{
-				return State::ErrorIsrRx;
-			}
-			if (osMessageQueuePut(*m_queueCanHandleFifo1, &msg, 0, 0) != osOK)
+			if (osMessageQueuePut(*queueHandle, &msg, 0, 0) != osOK)
 			{
 				return State::ErrorIsrRx;
 			}
@@ -171,9 +164,9 @@ FdcanController::State FdcanController::updateInterruptRx(FDCAN_HandleTypeDef *h
 	return State::Ok;
 }
 
-FdcanController::State FdcanController::setFilter(FDCAN_FilterTypeDef filter)
+FdcanController::State FdcanController::setFilter(FDCAN_FilterTypeDef *filter)
 {
-	if (HAL_FDCAN_ConfigFilter(m_hfdcan, &filter) != HAL_OK)
+	if (HAL_FDCAN_ConfigFilter(m_hfdcan, filter) != HAL_OK)
 	{
 		return State::ErrorFilter;
 	}

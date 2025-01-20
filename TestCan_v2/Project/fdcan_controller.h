@@ -30,6 +30,7 @@ public:
 	{
 		Ok = 0,
 		Error = 1,
+		ErrorHandleQueue,
 		ErrorInit,
 		ErrorSend,
 		ErrorReceive,
@@ -46,7 +47,7 @@ public:
 	};
 
 	void setHandleFdcan(FDCAN_HandleTypeDef *hfdcan);
-	void setHandleQueue(osMessageQueueId_t *queueCanHandle, const Buffer bufferType);
+	FdcanController::State setHandleQueue(osMessageQueueId_t *queueCanHandle, const Buffer bufferType);
 	void setHandleMutex(osMutexId_t *mutexCanHandle);
 	void setHandleSem(osSemaphoreId_t *semCanHandle);
 
@@ -57,7 +58,7 @@ public:
 	State updateInterruptTx(FDCAN_HandleTypeDef *hfdcan);
 	State updateInterruptRx(FDCAN_HandleTypeDef *hfdcan, uint32_t isrType);
 
-	FdcanController::State setFilter(FDCAN_FilterTypeDef filter);
+	FdcanController::State setFilter(FDCAN_FilterTypeDef *filter);
 
 private:
 	FDCAN_HandleTypeDef *m_hfdcan;

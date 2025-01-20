@@ -26,7 +26,7 @@
 #include "../../Project/fdcan_controller.h"
 
 #include <stdio.h>
-
+#include <string.h>
 
 /* USER CODE END Includes */
 
@@ -161,11 +161,11 @@ int main(void)
 	FDCAN_FilterTypeDef filterFifo0;
 	filterFifo0.IdType = FDCAN_STANDARD_ID;
 	filterFifo0.FilterIndex = 0;
-	filterFifo0.FilterType = FDCAN_FILTER_RANGE;
+	filterFifo0.FilterType = FDCAN_FILTER_MASK;
 	filterFifo0.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-	filterFifo0.FilterID1 = 0x001;
-	filterFifo0.FilterID2 = 0x00A;
-	if (can.setFilter(filterFifo0) != FdcanController::State::Ok)
+	filterFifo0.FilterID1 = 0x100;
+	filterFifo0.FilterID2 = 0x700;
+	if (can.setFilter(&filterFifo0) != FdcanController::State::Ok)
 	{
 		printf("error\r\n");
 	}
@@ -173,11 +173,11 @@ int main(void)
 	FDCAN_FilterTypeDef filterFifo1;
 	filterFifo1.IdType = FDCAN_STANDARD_ID;
 	filterFifo1.FilterIndex = 1;
-	filterFifo1.FilterType = FDCAN_FILTER_RANGE;
+	filterFifo1.FilterType = FDCAN_FILTER_MASK;
 	filterFifo1.FilterConfig = FDCAN_FILTER_TO_RXFIFO1;
-	filterFifo1.FilterID1 = 0x00B;
-	filterFifo1.FilterID2 = 0x016;
-	if (can.setFilter(filterFifo1) != FdcanController::State::Ok)
+	filterFifo1.FilterID1 = 0x200;
+	filterFifo1.FilterID2 = 0x700;
+	if (can.setFilter(&filterFifo1) != FdcanController::State::Ok)
 	{
 		printf("error\r\n");
 	}
@@ -337,7 +337,7 @@ static void MX_FDCAN1_Init(void)
 	hfdcan1.Init.DataSyncJumpWidth = 1;
 	hfdcan1.Init.DataTimeSeg1 = 1;
 	hfdcan1.Init.DataTimeSeg2 = 1;
-	hfdcan1.Init.StdFiltersNbr = 0;
+	hfdcan1.Init.StdFiltersNbr = 2;
 	hfdcan1.Init.ExtFiltersNbr = 0;
 	hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
 	if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
@@ -463,7 +463,6 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 
 void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
 {
-	HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
 	if (can.updateInterruptRx(hfdcan, RxFifo1ITs) != FdcanController::State::Ok)
 	{
 		printf("error\r\n");
@@ -490,7 +489,7 @@ void startTask0(void *argument)
 	/* USER CODE BEGIN 5 */
 
 	FdcanMsg msg;
-	msg.txHeader.Identifier = 0x006;
+	msg.txHeader.Identifier = 0x100;
 	msg.txHeader.IdType = FDCAN_STANDARD_ID;
 	msg.txHeader.TxFrameType = FDCAN_DATA_FRAME;
 	msg.txHeader.DataLength = FDCAN_DLC_BYTES_8;
@@ -500,13 +499,7 @@ void startTask0(void *argument)
 	msg.txHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
 	msg.txHeader.MessageMarker = 0;
 
-	msg.data[0] = 'h';
-	msg.data[1] = 'e';
-	msg.data[2] = 'y';
-	msg.data[3] = 'a';
-	msg.data[4] = '0';
-	msg.data[5] = '\0';
-
+	memcpy(msg.data, "fifo0\0", 6);
 	/* Infinite loop */
 	for (;;)
 	{
@@ -541,7 +534,7 @@ void startTask2(void *argument)
 {
 	/* USER CODE BEGIN startTask1 */
 	FdcanMsg msg;
-	msg.txHeader.Identifier = 0x00D;
+	msg.txHeader.Identifier = 0x200;
 	msg.txHeader.IdType = FDCAN_STANDARD_ID;
 	msg.txHeader.TxFrameType = FDCAN_DATA_FRAME;
 	msg.txHeader.DataLength = FDCAN_DLC_BYTES_8;
@@ -551,12 +544,7 @@ void startTask2(void *argument)
 	msg.txHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
 	msg.txHeader.MessageMarker = 0;
 
-	msg.data[0] = 'h';
-	msg.data[1] = 'e';
-	msg.data[2] = 'y';
-	msg.data[3] = 'a';
-	msg.data[4] = '2';
-	msg.data[5] = '\0';
+	memcpy(msg.data, "fifo1\0", 6);
 	/* Infinite loop */
 	for (;;)
 	{
