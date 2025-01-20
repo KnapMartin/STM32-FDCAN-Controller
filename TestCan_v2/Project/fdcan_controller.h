@@ -34,28 +34,38 @@ public:
 		ErrorSend,
 		ErrorReceive,
 		ErrorIsrTx,
-		ErrorIsrRx
+		ErrorIsrRx,
+		ErrorFilter
+	};
+
+	enum class Buffer
+	{
+		None = 0,
+		Fifo0,
+		Fifo1,
 	};
 
 	void setHandleFdcan(FDCAN_HandleTypeDef *hfdcan);
-	void setHandleQueue(osMessageQueueId_t *queueCanHandle);
+	void setHandleQueue(osMessageQueueId_t *queueCanHandle, const Buffer bufferType);
 	void setHandleMutex(osMutexId_t *mutexCanHandle);
 	void setHandleSem(osSemaphoreId_t *semCanHandle);
 
 	State init();
 	State send(const FdcanMsg msg);
-	State receive(FdcanMsg *msg);
+	State receive(FdcanMsg *msg, const Buffer bufferType);
 
 	State updateInterruptTx(FDCAN_HandleTypeDef *hfdcan);
 	State updateInterruptRx(FDCAN_HandleTypeDef *hfdcan, uint32_t isrType);
 
-	void setFilter(FDCAN_FilterTypeDef filter);
+	FdcanController::State setFilter(FDCAN_FilterTypeDef filter);
 
 private:
 	FDCAN_HandleTypeDef *m_hfdcan;
-	osMessageQueueId_t *m_queueCanHandle;
+	osMessageQueueId_t *m_queueCanHandleFifo0;
+	osMessageQueueId_t *m_queueCanHandleFifo1;
 	osMutexId_t *m_mutexCanHandle;
 	osSemaphoreId_t *m_semCanHandle;
+
 };
 
 #endif /* FDCAN_CONTROLLER_H_ */

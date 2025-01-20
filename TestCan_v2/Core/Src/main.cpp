@@ -24,7 +24,6 @@
 /* USER CODE BEGIN Includes */
 
 #include "../../Project/fdcan_controller.h"
-#include "../../Test/unity.h"
 
 #include <stdio.h>
 
@@ -66,10 +65,19 @@ osThreadId_t task2Handle;
 const osThreadAttr_t task2_attributes =
 { .name = "task2", .stack_size = 256 * 4, .priority =
 		(osPriority_t) osPriorityNormal };
+/* Definitions for task2 */
+osThreadId_t task3Handle;
+const osThreadAttr_t task3_attributes =
+{ .name = "task3", .stack_size = 256 * 4, .priority =
+		(osPriority_t) osPriorityNormal };
 /* Definitions for queueCan */
-osMessageQueueId_t queueCanHandle;
-const osMessageQueueAttr_t queueCan_attributes =
-{ .name = "queueCan" };
+osMessageQueueId_t queueCanFifo0Handle;
+const osMessageQueueAttr_t queueCanFifo0_attributes =
+{ .name = "queueCanFifo0" };
+/* Definitions for queueCan */
+osMessageQueueId_t queueCanFifo1Handle;
+const osMessageQueueAttr_t queueCanFifo1_attributes =
+{ .name = "queueCanFifo1" };
 /* Definitions for mutexCan */
 osMutexId_t mutexCanHandle;
 const osMutexAttr_t mutexCan_attributes =
@@ -90,6 +98,7 @@ static void MX_USART2_UART_Init(void);
 void startTask0(void *argument);
 void startTask1(void *argument);
 void startTask2(void *argument);
+void startTask3(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -145,8 +154,34 @@ int main(void)
 
 	can.setHandleFdcan(&hfdcan1);
 	can.setHandleMutex(&mutexCanHandle);
-	can.setHandleQueue(&queueCanHandle);
+	can.setHandleQueue(&queueCanFifo0Handle, FdcanController::Buffer::Fifo0);
+	can.setHandleQueue(&queueCanFifo1Handle, FdcanController::Buffer::Fifo1);
 	can.setHandleSem(&semCanHandle);
+
+	FDCAN_FilterTypeDef filterFifo0;
+	filterFifo0.IdType = FDCAN_STANDARD_ID;
+	filterFifo0.FilterIndex = 0;
+	filterFifo0.FilterType = FDCAN_FILTER_RANGE;
+	filterFifo0.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+	filterFifo0.FilterID1 = 0x001;
+	filterFifo0.FilterID2 = 0x00A;
+	if (can.setFilter(filterFifo0) != FdcanController::State::Ok)
+	{
+		printf("error\r\n");
+	}
+
+	FDCAN_FilterTypeDef filterFifo1;
+	filterFifo1.IdType = FDCAN_STANDARD_ID;
+	filterFifo1.FilterIndex = 1;
+	filterFifo1.FilterType = FDCAN_FILTER_RANGE;
+	filterFifo1.FilterConfig = FDCAN_FILTER_TO_RXFIFO1;
+	filterFifo1.FilterID1 = 0x00B;
+	filterFifo1.FilterID2 = 0x016;
+	if (can.setFilter(filterFifo1) != FdcanController::State::Ok)
+	{
+		printf("error\r\n");
+	}
+
 	if (can.init() != FdcanController::State::Ok)
 	{
 		printf("error\r\n");
@@ -178,8 +213,10 @@ int main(void)
 
 	/* Create the queue(s) */
 	/* creation of queueCan */
-	queueCanHandle = osMessageQueueNew(16, sizeof(FdcanMsg),
-			&queueCan_attributes);
+	queueCanFifo0Handle = osMessageQueueNew(16, sizeof(FdcanMsg),
+			&queueCanFifo0_attributes);
+	queueCanFifo1Handle = osMessageQueueNew(16, sizeof(FdcanMsg),
+			&queueCanFifo1_attributes);
 
 	/* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
@@ -194,6 +231,9 @@ int main(void)
 
 	/* creation of task2 */
 	task2Handle = osThreadNew(startTask2, NULL, &task2_attributes);
+
+	/* creation of task3 */
+	task3Handle = osThreadNew(startTask3, NULL, &task3_attributes);
 
 	/* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
@@ -413,9 +453,18 @@ void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan,
 	}
 }
 
-void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifoITs)
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 {
-	if (can.updateInterruptRx(hfdcan, RxFifoITs) != FdcanController::State::Ok)
+	if (can.updateInterruptRx(hfdcan, RxFifo0ITs) != FdcanController::State::Ok)
+	{
+		printf("error\r\n");
+	}
+}
+
+void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
+{
+	HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+	if (can.updateInterruptRx(hfdcan, RxFifo1ITs) != FdcanController::State::Ok)
 	{
 		printf("error\r\n");
 	}
@@ -461,8 +510,7 @@ void startTask0(void *argument)
 	/* Infinite loop */
 	for (;;)
 	{
-//		osDelay(1e3);
-		osDelay(1);
+		osDelay(1e3);
 		task_action('1');
 		can.send(msg);
 	}
@@ -483,8 +531,8 @@ void startTask1(void *argument)
 	for (;;)
 	{
 		FdcanMsg msg;
-		can.receive(&msg);
-		printf("got: %s\r\n", reinterpret_cast<char*>(msg.data));
+		can.receive(&msg, FdcanController::Buffer::Fifo0);
+		printf("fifo0 got: %s\r\n", reinterpret_cast<char*>(msg.data));
 	}
 	/* USER CODE END startTask1 */
 }
@@ -493,7 +541,7 @@ void startTask2(void *argument)
 {
 	/* USER CODE BEGIN startTask1 */
 	FdcanMsg msg;
-	msg.txHeader.Identifier = 0x006;
+	msg.txHeader.Identifier = 0x00D;
 	msg.txHeader.IdType = FDCAN_STANDARD_ID;
 	msg.txHeader.TxFrameType = FDCAN_DATA_FRAME;
 	msg.txHeader.DataLength = FDCAN_DLC_BYTES_8;
@@ -512,9 +560,23 @@ void startTask2(void *argument)
 	/* Infinite loop */
 	for (;;)
 	{
-		osDelay(1);
+		osDelay(1e3);
 		task_action('2');
 		can.send(msg);
+	}
+	/* USER CODE END startTask1 */
+}
+
+void startTask3(void *argument)
+{
+	/* USER CODE BEGIN startTask1 */
+
+	/* Infinite loop */
+	for (;;)
+	{
+		FdcanMsg msg;
+		can.receive(&msg, FdcanController::Buffer::Fifo1);
+		printf("fifo1 got: %s\r\n", reinterpret_cast<char*>(msg.data));
 	}
 	/* USER CODE END startTask1 */
 }
