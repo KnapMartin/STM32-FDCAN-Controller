@@ -1,15 +1,18 @@
-../Core/Src/main.cpp:96:16:int _write(int, char*, int)	1
-../Core/Src/main.cpp:108:5:int main()	2
-../Core/Src/main.cpp:216:6:void SystemClock_Config()	3
-../Core/Src/main.cpp:265:13:void MX_FDCAN1_Init()	2
-../Core/Src/main.cpp:308:13:void MX_USART2_UART_Init()	5
-../Core/Src/main.cpp:358:13:void MX_GPIO_Init()	1
-../Core/Src/main.cpp:397:6:void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef*, uint32_t)	2
-../Core/Src/main.cpp:406:6:void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef*, uint32_t)	2
-../Core/Src/main.cpp:423:6:void startTask0(void*)	1
-../Core/Src/main.cpp:460:6:void startTask1(void*)	1
-../Core/Src/main.cpp:481:6:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	2
-../Core/Src/main.cpp:499:6:void Error_Handler()	1
-../Core/Src/main.cpp:508:1:void __static_initialization_and_destruction_0(int, int)	5
-../Core/Src/main.cpp:508:1:cpp)	1
-../Core/Src/main.cpp:508:1:cpp)	1
+../Drivers/CMSIS/Include/core_cm4.h:2059:26:uint32_t ITM_SendChar(uint32_t)	5
+../Core/Src/main.cpp:103:16:int _write(int, char*, int)	1
+../Core/Src/main.cpp:115:5:int main()	2
+../Core/Src/main.cpp:226:6:void SystemClock_Config()	3
+../Core/Src/main.cpp:275:13:void MX_FDCAN1_Init()	2
+../Core/Src/main.cpp:318:13:void MX_USART2_UART_Init()	5
+../Core/Src/main.cpp:368:13:void MX_GPIO_Init()	1
+../Core/Src/main.cpp:407:6:void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef*, uint32_t)	2
+../Core/Src/main.cpp:416:6:void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef*, uint32_t)	2
+../Core/Src/main.cpp:424:6:void task_action(char)	1
+../Core/Src/main.cpp:439:6:void startTask0(void*)	1
+../Core/Src/main.cpp:479:6:void startTask1(void*)	1
+../Core/Src/main.cpp:492:6:void startTask2(void*)	1
+../Core/Src/main.cpp:530:6:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	2
+../Core/Src/main.cpp:548:6:void Error_Handler()	1
+../Core/Src/main.cpp:557:1:void __static_initialization_and_destruction_0(int, int)	5
+../Core/Src/main.cpp:557:1:cpp)	1
+../Core/Src/main.cpp:557:1:cpp)	1

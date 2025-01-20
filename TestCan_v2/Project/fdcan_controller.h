@@ -30,6 +30,11 @@ public:
 	{
 		Ok = 0,
 		Error = 1,
+		ErrorInit,
+		ErrorSend,
+		ErrorReceive,
+		ErrorIsrTx,
+		ErrorIsrRx
 	};
 
 	void setHandleFdcan(FDCAN_HandleTypeDef *hfdcan);

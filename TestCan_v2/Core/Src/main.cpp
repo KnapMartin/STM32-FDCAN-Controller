@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 
 #include "../../Project/fdcan_controller.h"
+#include "../../Test/unity.h"
 
 #include <stdio.h>
 
@@ -60,6 +61,11 @@ osThreadId_t task1Handle;
 const osThreadAttr_t task1_attributes =
 { .name = "task1", .stack_size = 256 * 4, .priority =
 		(osPriority_t) osPriorityNormal };
+/* Definitions for task2 */
+osThreadId_t task2Handle;
+const osThreadAttr_t task2_attributes =
+{ .name = "task2", .stack_size = 256 * 4, .priority =
+		(osPriority_t) osPriorityNormal };
 /* Definitions for queueCan */
 osMessageQueueId_t queueCanHandle;
 const osMessageQueueAttr_t queueCan_attributes =
@@ -83,6 +89,7 @@ static void MX_FDCAN1_Init(void);
 static void MX_USART2_UART_Init(void);
 void startTask0(void *argument);
 void startTask1(void *argument);
+void startTask2(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -159,7 +166,7 @@ int main(void)
 
 	/* Create the semaphores(s) */
 	/* creation of semCan */
-	semCanHandle = osSemaphoreNew(1, 1, &semCan_attributes);
+	semCanHandle = osSemaphoreNew(1, 0, &semCan_attributes);
 
 	/* USER CODE BEGIN RTOS_SEMAPHORES */
 	/* add semaphores, ... */
@@ -184,6 +191,9 @@ int main(void)
 
 	/* creation of task1 */
 	task1Handle = osThreadNew(startTask1, NULL, &task1_attributes);
+
+	/* creation of task2 */
+	task2Handle = osThreadNew(startTask2, NULL, &task2_attributes);
 
 	/* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
@@ -411,6 +421,12 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifoITs)
 	}
 }
 
+void task_action(char command)
+{
+	ITM_SendChar(command);
+	ITM_SendChar('\n');
+}
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_startTask0 */
@@ -439,12 +455,15 @@ void startTask0(void *argument)
 	msg.data[1] = 'e';
 	msg.data[2] = 'y';
 	msg.data[3] = 'a';
-	msg.data[4] = '\0';
+	msg.data[4] = '0';
+	msg.data[5] = '\0';
 
 	/* Infinite loop */
 	for (;;)
 	{
-		osDelay(1e3);
+//		osDelay(1e3);
+		osDelay(1);
+		task_action('1');
 		can.send(msg);
 	}
 	/* USER CODE END 5 */
@@ -466,6 +485,36 @@ void startTask1(void *argument)
 		FdcanMsg msg;
 		can.receive(&msg);
 		printf("got: %s\r\n", reinterpret_cast<char*>(msg.data));
+	}
+	/* USER CODE END startTask1 */
+}
+
+void startTask2(void *argument)
+{
+	/* USER CODE BEGIN startTask1 */
+	FdcanMsg msg;
+	msg.txHeader.Identifier = 0x006;
+	msg.txHeader.IdType = FDCAN_STANDARD_ID;
+	msg.txHeader.TxFrameType = FDCAN_DATA_FRAME;
+	msg.txHeader.DataLength = FDCAN_DLC_BYTES_8;
+	msg.txHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+	msg.txHeader.BitRateSwitch = FDCAN_BRS_OFF;
+	msg.txHeader.FDFormat = FDCAN_CLASSIC_CAN;
+	msg.txHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+	msg.txHeader.MessageMarker = 0;
+
+	msg.data[0] = 'h';
+	msg.data[1] = 'e';
+	msg.data[2] = 'y';
+	msg.data[3] = 'a';
+	msg.data[4] = '2';
+	msg.data[5] = '\0';
+	/* Infinite loop */
+	for (;;)
+	{
+		osDelay(1);
+		task_action('2');
+		can.send(msg);
 	}
 	/* USER CODE END startTask1 */
 }
