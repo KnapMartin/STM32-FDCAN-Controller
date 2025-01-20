@@ -1,7 +1,7 @@
 /*
  * fdcan_controller.h
  *
- *  Created on: Jan 8, 2025
+ *  Created on: Jan 17, 2025
  *      Author: knap-linux
  */
 
@@ -11,29 +11,13 @@
 #include "main.h"
 #include "cmsis_os.h"
 
-constexpr uint8_t canMsgLen
-{ 8 };
+constexpr uint8_t FDCAN_MSG_LEN{8};
 
-struct CanMsg
+struct FdcanMsg
 {
-	uint8_t data[canMsgLen];
-	uint8_t length
-	{ canMsgLen };
-	FDCAN_TxHeaderTypeDef txHeader
-	{ };
-	FDCAN_RxHeaderTypeDef rxHeader
-	{ };
-};
-
-enum class CanRxStatus
-{
-	Ok = 0, InvalidBuffer, QueueEmpty, Timeout, Error
-};
-
-struct CanRxResult
-{
-	CanRxStatus status;
-	CanMsg message;
+	FDCAN_RxHeaderTypeDef rxHeader;
+	FDCAN_TxHeaderTypeDef txHeader;
+	uint8_t data[FDCAN_MSG_LEN];
 };
 
 class FdcanController
@@ -42,32 +26,46 @@ public:
 	FdcanController();
 	virtual ~FdcanController();
 
+	enum class State
+	{
+		Ok = 0,
+		Error = 1,
+		ErrorHandleQueue,
+		ErrorInit,
+		ErrorSend,
+		ErrorReceive,
+		ErrorIsrTx,
+		ErrorIsrRx,
+		ErrorFilter
+	};
+
 	enum class Buffer
 	{
-		None, Fifo0, Fifo1
+		None = 0,
+		Fifo0,
+		Fifo1,
 	};
 
 	void setHandleFdcan(FDCAN_HandleTypeDef *hfdcan);
-	void setHandleSemTx(osSemaphoreId_t *semTx);
-	bool setHandleQueueRx(osMessageQueueId_t *queueRx, Buffer bufferType);
-	void setHandleMutexTx(osMutexId_t *mutexTx);
+	FdcanController::State setHandleQueue(osMessageQueueId_t *queueCanHandle, const Buffer bufferType);
+	void setHandleMutex(osMutexId_t *mutexCanHandle);
+	void setHandleSem(osSemaphoreId_t *semCanHandle);
 
-	bool init();
-	bool send(const CanMsg &msg);
-	CanRxResult receive(Buffer bufferType);
+	State init();
+	State send(const FdcanMsg msg);
+	State receive(FdcanMsg *msg, const Buffer bufferType);
 
-	bool updateInterruptRx(FDCAN_HandleTypeDef *hfdcan, uint32_t isrType,
-			Buffer bufferType);
-	bool updateInterruptTx(FDCAN_HandleTypeDef *hfdcan);
+	State updateInterruptTx(FDCAN_HandleTypeDef *hfdcan);
+	State updateInterruptRx(FDCAN_HandleTypeDef *hfdcan, uint32_t isrType);
 
-	bool setFilter(FDCAN_FilterTypeDef *filter);
+	FdcanController::State setFilter(FDCAN_FilterTypeDef *filter);
 
 private:
 	FDCAN_HandleTypeDef *m_hfdcan;
-	osSemaphoreId_t *m_semTx;
-	osMessageQueueId_t *m_queueRxFifo0;
-	osMessageQueueId_t *m_queueRxFifo1;
-	osMutexId_t *m_mutexTx;
+	osMessageQueueId_t *m_queueCanHandleFifo0;
+	osMessageQueueId_t *m_queueCanHandleFifo1;
+	osMutexId_t *m_mutexCanHandle;
+	osSemaphoreId_t *m_semCanHandle;
 
 };
 
