@@ -69,4 +69,3 @@ Now you can use "send" and "receive" methods from tasks.
 
 # TODO
 * Handle CMSIS OS2 wait timeouts.
-* Use compiler optimizations.
